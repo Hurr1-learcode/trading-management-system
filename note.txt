@@ -1,0 +1,207 @@
+
+
+## **1. LUỒNG KHỞI TẠO ỨNG DỤNG**
+
+```
+Main.java (Entry Point)
+    ↓
+UIManager.setLookAndFeel() (Set giao diện)
+    ↓
+DatabaseUtil.getInstance() (Khởi tạo connection pool)
+    ↓
+DatabaseConfig (Đọc cấu hình DB: URL, user, password)
+    ↓
+Connection Pool tạo sẵn N connections
+    ↓
+MainFrame() (Khởi tạo UI)
+    ↓
+QuanLyGiaoDich() (Khởi tạo service)
+    ↓
+GiaoDichDAOImpl() (Khởi tạo DAO)
+    ↓
+UI hiển thị với 2 tabs: "Quản lý GD" + "Thống kê"
+```
+
+## **2. LUỒNG THÊM GIAO DỊCH**
+
+```
+User nhập form + click "Thêm"
+    ↓
+MainFrame.handleThem(ActionEvent)
+    ↓
+MainFrame.getFormData() → GiaoDichFormDTO
+    ↓
+ValidationUtil.validateXxx() (Validate từng field)
+    ↓
+QuanLyGiaoDich.add(GiaoDichFormDTO)
+    ↓
+Service check duplicate: DAO.exists(maGiaoDich)
+    ↓
+Service validate business rules
+    ↓
+Service.createGiaoDichFromDTO():
+    ├─ if (isGiaoDichVang()) → new GiaoDichVang()
+    └─ if (isGiaoDichTienTe()) → new GiaoDichTienTe()
+    ↓
+GiaoDichDAOImpl.save(GiaoDich entity)
+    ↓
+DatabaseUtil.getConnection() (Lấy connection từ pool)
+    ↓
+PreparedStatement với INSERT SQL
+    ↓
+Database execute INSERT
+    ↓
+DatabaseUtil.releaseConnection() (Trả connection về pool)
+    ↓
+Return saved entity to Service
+    ↓
+Service return to UI
+    ↓
+MainFrame.showMessage("Thành công")
+    ↓
+MainFrame.clearForm() + loadData() (Refresh UI)
+```
+
+## **3. LUỒNG HIỂN THỊ DANH SÁCH**
+
+```
+MainFrame.loadData()
+    ↓
+QuanLyGiaoDich.getAll()
+    ↓
+GiaoDichDAOImpl.findAll()
+    ↓
+DatabaseUtil.getConnection()
+    ↓
+SELECT * FROM giao_dich
+    ↓
+ResultSet → mapResultSetToGiaoDich():
+    ├─ if "VANG" → new GiaoDichVang()
+    └─ if "TIEN_TE" → new GiaoDichTienTe()
+    ↓
+List<GiaoDich> return to Service
+    ↓
+Service return to UI
+    ↓
+MainFrame populate JTable với data
+    ↓
+Hiển thị trên UI (Mã GD, Ngày, Đơn giá, SL, Loại, Thành tiền)
+```
+
+## **4. LUỒNG THỐNG KÊ**
+
+```
+User click "Cập nhật thống kê"
+    ↓
+MainFrame.handleCapNhatThongKe()
+    ↓
+QuanLyGiaoDich.getTongSoLuongTheoLoai()
+    ↓
+DAO thực hiện nhiều query song song:
+    ├─ countByLoaiGiaoDich("VANG")
+    ├─ countByLoaiGiaoDich("TIEN_TE") 
+    ├─ sumThanhTienByLoaiGiaoDich("VANG")
+    ├─ sumThanhTienByLoaiGiaoDich("TIEN_TE")
+    └─ avgThanhTienByLoaiGiaoDich("TIEN_TE")
+    ↓
+Service tạo ThongKeDTO với tất cả kết quả
+    ↓
+ThongKeDTO.getTongThanhTienTatCa() (Tính tổng)
+    ↓
+MainFrame.displayThongKe(ThongKeDTO)
+    ↓
+UI hiển thị trong JTextArea với format đẹp
+```
+
+## **5. LUỒNG IN DANH SÁCH**
+
+```
+User click "In danh sách"
+    ↓
+MainFrame.handleInDanhSach()
+    ↓
+MainFrame.showExportDialog() (Dialog chọn loại xuất)
+    ↓
+User chọn: "Tất cả" | "Hiển thị" | "Kèm thống kê"
+    ↓
+MainFrame.selectFileAndExport()
+    ↓
+JFileChooser hiển thị dialog chọn file
+    ↓
+User chọn path + filename + extension (.txt/.csv)
+    ↓
+MainFrame.exportData(File, exportType)
+    ↓
+getDataForExport() → QuanLyGiaoDich.getAll()
+    ↓
+if (.csv) → exportToCSV() | if (.txt) → exportToText()
+    ↓
+FileWriter ghi header + data + statistics
+    ↓
+File được lưu tại vị trí user chọn
+    ↓
+MainFrame.showMessage("Xuất file thành công")
+```
+
+## **6. LUỒNG XỬ LÝ LỖI**
+
+```
+Bất kỳ Exception nào xảy ra
+    ↓
+try-catch trong từng layer:
+    ├─ ValidationException → UI show validation error
+    ├─ BusinessException → UI show business error  
+    ├─ DataAccessException → UI show "Lỗi hệ thống"
+    └─ SQLException → Wrap thành DataAccessException
+    ↓
+Logger.log() ghi error vào console
+    ↓
+JOptionPane.showMessageDialog() hiển thị cho user
+    ↓
+Application tiếp tục hoạt động (không crash)
+```
+
+## **7. LUỒNG QUẢN LÝ CONNECTION**
+
+```
+DatabaseUtil (Singleton Pattern)
+    ↓
+Connection Pool (BlockingQueue):
+    ├─ MIN_POOL_SIZE connections được tạo sẵn
+    ├─ MAX_POOL_SIZE giới hạn tối đa
+    └─ Connection được reuse nhiều lần
+    ↓
+DAO.operation():
+    ├─ getConnection() từ pool
+    ├─ Execute SQL
+    ├─ Process ResultSet  
+    └─ releaseConnection() về pool
+    ↓
+Connection không bị đóng, được tái sử dụng
+```
+
+## **8. TỔNG QUAN KIẾN TRÚC**
+
+```
+┌─────────────────┐
+│   UI Layer      │ ← MainFrame (Controller + View)
+├─────────────────┤
+│   DTO Layer     │ ← GiaoDichFormDTO, ThongKeDTO  
+├─────────────────┤
+│ Service Layer   │ ← QuanLyGiaoDich (Business Logic)
+├─────────────────┤
+│   DAO Layer     │ ← GiaoDichDAO, GiaoDichDAOImpl
+├─────────────────┤
+│  Model Layer    │ ← GiaoDich, GiaoDichVang, GiaoDichTienTe
+├─────────────────┤
+│  Utils Layer    │ ← ValidationUtil, DatabaseUtil
+├─────────────────┤
+│Exception Layer  │ ← Custom Exceptions
+├─────────────────┤
+│ Config Layer    │ ← DatabaseConfig
+└─────────────────┘
+          ↓
+    MySQL Database
+```
+
+**Đây là luồng hoạt động hoàn chỉnh từ khởi tạo đến xử lý nghiệp vụ của ứng dụng!**
