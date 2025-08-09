@@ -1,0 +1,22 @@
+Folder UI
+
+Panels
+TransactionFormPanel.java - Form nhập liệu + validation
+TransactionTablePanel.java - Bảng hiển thị giao dịch
+StatisticsPanel.java - Tab thống kê + bảng đơn giá lớn
+
+Utils
+UIUtils.java - Message dialogs, formatters
+
+Controller 
+TransactionController.java - CRUD logic
+StatisticsController.java - Thống kê logic
+ExportController.java - Export logic
+
+
+MainFrame.java sẽ:
+Khởi tạo các panel
+Kết nối các controller
+Quản lý layout tổng thể
+
+

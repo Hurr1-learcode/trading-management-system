@@ -174,30 +174,7 @@ public class QuanLyGiaoDich {
     public List<GiaoDich> getDonGiaLonHon1Ty() throws BusinessException {
         try {
             BigDecimal motTy = new BigDecimal("1000000000");
-            System.out.println("DEBUG: Looking for transactions with don_gia > " + motTy);
-            
-            // Lấy tất cả giao dịch để debug
-            List<GiaoDich> allTransactions = giaoDichDAO.findAll();
-            System.out.println("DEBUG: Total transactions in database: " + allTransactions.size());
-            
-            for (GiaoDich gd : allTransactions) {
-                BigDecimal donGia = gd.getDonGia();
-                boolean isGreater = donGia.compareTo(motTy) > 0;
-                System.out.println("DEBUG: Transaction ID=" + gd.getMaGiaoDich() + 
-                                 ", don_gia=" + donGia + 
-                                 ", > 1ty? " + isGreater);
-                
-                if (gd instanceof GiaoDichTienTe) {
-                    GiaoDichTienTe gdtt = (GiaoDichTienTe) gd;
-                    System.out.println("       Currency: " + gdtt.getLoaiTien() + 
-                                     ", Exchange rate: " + gdtt.getTiGia() + 
-                                     ", Total amount: " + gdtt.tinhThanhTien());
-                }
-            }
-            
-            List<GiaoDich> result = giaoDichDAO.findByDonGiaGreaterThan(motTy);
-            System.out.println("DEBUG: Found " + result.size() + " transactions with don_gia > 1 billion");
-            return result;
+            return giaoDichDAO.findByDonGiaGreaterThan(motTy);
         } catch (DataAccessException e) {
             throw new BusinessException("Không thể lọc giao dịch đơn giá lớn hơn 1 tỷ: " + e.getMessage(), e);
         }
