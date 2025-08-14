@@ -43,7 +43,7 @@ public class TransactionTablePanel extends JPanel {
      * Khởi tạo các component
      */
     private void initializeComponents() {
-        // Tạo model cho bảng với các cột (bỏ cột "Loại")
+        // Tạo model cho bảng với các cột 
         String[] columns = {"Mã GD", "Ngày", "Đơn giá", "Số lượng", "Chi tiết", "Thành tiền", "Thao tác"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override

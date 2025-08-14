@@ -69,10 +69,10 @@ public class MainFrame extends JFrame {
      * Khởi tạo các controller
      */
     private void initializeControllers() {
-        // Tạo transaction controller (xử lý CRUD)
-        transactionController = new TransactionController(tabPanel, goldFormPanel, currencyFormPanel, tablePanel);
+        // Tạo transaction controller (xử lý CRUD) - inject service
+        transactionController = new TransactionController(tabPanel, goldFormPanel, currencyFormPanel, tablePanel, quanLyGiaoDich);
         
-        // Tạo statistics controller (xử lý thống kê)
+        // Tạo statistics controller (xử lý thống kê) - inject service
         statisticsController = new StatisticsController(statisticsPanel, quanLyGiaoDich);
         
         // Tạo export controller (xử lý export)

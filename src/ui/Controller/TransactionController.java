@@ -34,12 +34,13 @@ public class TransactionController {
     public TransactionController(TransactionTabPanel tabPanel, 
                                GoldTransactionFormPanel goldFormPanel,
                                CurrencyTransactionFormPanel currencyFormPanel,
-                               TransactionTablePanel tablePanel) {
+                               TransactionTablePanel tablePanel,
+                               QuanLyGiaoDich quanLyGiaoDich) {
         this.tabPanel = tabPanel;
         this.goldFormPanel = goldFormPanel;
         this.currencyFormPanel = currencyFormPanel;
         this.tablePanel = tablePanel;
-        this.quanLyGiaoDich = new QuanLyGiaoDich();
+        this.quanLyGiaoDich = quanLyGiaoDich; // Inject service từ MainFrame
         
         setupEventHandlers();
         loadAllTransactions();
