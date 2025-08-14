@@ -13,14 +13,18 @@ import service.QuanLyGiaoDich;
 import ui.Controller.ExportController;
 import ui.Controller.StatisticsController;
 import ui.Controller.TransactionController;
+import ui.Panels.CurrencyTransactionFormPanel;
+import ui.Panels.GoldTransactionFormPanel;
 import ui.Panels.StatisticsPanel;
-import ui.Panels.TransactionFormPanel;
+import ui.Panels.TransactionTabPanel;
 import ui.Panels.TransactionTablePanel;
 
 public class MainFrame extends JFrame {
     
     // Các panel chính
-    private TransactionFormPanel formPanel;
+    private TransactionTabPanel tabPanel;
+    private GoldTransactionFormPanel goldFormPanel;
+    private CurrencyTransactionFormPanel currencyFormPanel;
     private TransactionTablePanel tablePanel;
     private StatisticsPanel statisticsPanel;
     
@@ -54,7 +58,9 @@ public class MainFrame extends JFrame {
      */
     private void initializePanels() {
         // Tạo các panel
-        formPanel = new TransactionFormPanel();
+        tabPanel = new TransactionTabPanel();
+        goldFormPanel = new GoldTransactionFormPanel();
+        currencyFormPanel = new CurrencyTransactionFormPanel();
         tablePanel = new TransactionTablePanel();
         statisticsPanel = new StatisticsPanel();
     }
@@ -64,7 +70,7 @@ public class MainFrame extends JFrame {
      */
     private void initializeControllers() {
         // Tạo transaction controller (xử lý CRUD)
-        transactionController = new TransactionController(formPanel, tablePanel);
+        transactionController = new TransactionController(tabPanel, goldFormPanel, currencyFormPanel, tablePanel);
         
         // Tạo statistics controller (xử lý thống kê)
         statisticsController = new StatisticsController(statisticsPanel, quanLyGiaoDich);
@@ -111,8 +117,8 @@ public class MainFrame extends JFrame {
     private JPanel createTransactionTab() {
         JPanel panel = new JPanel(new BorderLayout());
         
-        // Thêm form panel ở phía trên
-        panel.add(formPanel, BorderLayout.NORTH);
+        // Thêm tab panel ở phía trên
+        panel.add(tabPanel, BorderLayout.NORTH);
         
         // Thêm table panel ở phía giữa
         panel.add(tablePanel, BorderLayout.CENTER);
