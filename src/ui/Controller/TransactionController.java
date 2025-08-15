@@ -17,6 +17,11 @@ import ui.Panels.GoldTransactionFormPanel;
 import ui.Panels.TransactionTabPanel;
 import ui.Panels.TransactionTablePanel;
 import ui.Utils.UIUtils;
+import usecase.DeleteTransactionUseCase;
+import usecase.EditTransactionUseCase;
+import usecase.OpenAddTransactionFormUseCase;
+import usecase.SubmitAddTransactionUseCase;
+import usecase.SubmitEditTransactionUseCase;
 
 public class TransactionController {
     
@@ -26,6 +31,13 @@ public class TransactionController {
     private CurrencyTransactionFormPanel currencyFormPanel;
     private TransactionTablePanel tablePanel;
     private StatisticsController statisticsController; // Để refresh stats khi cần
+    
+    // Use Cases
+    private OpenAddTransactionFormUseCase openAddTransactionFormUseCase;
+    private SubmitAddTransactionUseCase submitAddTransactionUseCase;
+    private EditTransactionUseCase editTransactionUseCase;
+    private SubmitEditTransactionUseCase submitEditTransactionUseCase;
+    private DeleteTransactionUseCase deleteTransactionUseCase;
     
     // Danh sách giao dịch hiện tại (để filter theo loại)
     private List<GiaoDich> allTransactions;
@@ -41,6 +53,15 @@ public class TransactionController {
         this.currencyFormPanel = currencyFormPanel;
         this.tablePanel = tablePanel;
         this.quanLyGiaoDich = quanLyGiaoDich; // Inject service từ MainFrame
+        
+        // Initialize Use Cases
+        this.openAddTransactionFormUseCase = new OpenAddTransactionFormUseCase(
+            goldFormPanel, currencyFormPanel);
+        this.submitAddTransactionUseCase = new SubmitAddTransactionUseCase(quanLyGiaoDich);
+        this.editTransactionUseCase = new EditTransactionUseCase(
+            quanLyGiaoDich, goldFormPanel, currencyFormPanel);
+        this.submitEditTransactionUseCase = new SubmitEditTransactionUseCase(quanLyGiaoDich);
+        this.deleteTransactionUseCase = new DeleteTransactionUseCase(quanLyGiaoDich);
         
         setupEventHandlers();
         loadAllTransactions();
@@ -113,15 +134,13 @@ public class TransactionController {
     
     /**
      * Xử lý nút thêm giao dịch
+     * Sử dụng OpenAddTransactionFormUseCase theo Clean Architecture
      */
     private void handleAddButtonClick() {
         String currentType = tabPanel.getSelectedTransactionType();
         
-        if ("VANG".equals(currentType)) {
-            goldFormPanel.showAddForm();
-        } else {
-            currencyFormPanel.showAddForm();
-        }
+        // Delegate to Use Case
+        openAddTransactionFormUseCase.execute(currentType);
     }
     
     /**
@@ -148,10 +167,14 @@ public class TransactionController {
     /**
      * Xử lý thêm giao dịch mới
      */
+    /**
+     * Xử lý thêm giao dịch mới
+     * Sử dụng SubmitAddTransactionUseCase theo Clean Architecture
+     */
     private void handleAddTransaction(GiaoDichFormDTO dto) {
         try {
-            // Thêm giao dịch
-            quanLyGiaoDich.add(dto);
+            // Delegate to Submit Use Case
+            submitAddTransactionUseCase.execute(dto);
             
             // Hiển thị thông báo thành công
             UIUtils.showSuccess(tablePanel, "Thêm giao dịch thành công!");
@@ -171,6 +194,7 @@ public class TransactionController {
     
     /**
      * Xử lý sửa giao dịch
+     * Sử dụng SubmitEditTransactionUseCase theo Clean Architecture
      */
     private void handleEditTransaction(GiaoDichFormDTO dto, String selectedMaGiaoDich) {
         if (selectedMaGiaoDich == null) {
@@ -179,8 +203,8 @@ public class TransactionController {
         }
         
         try {
-            // Cập nhật giao dịch
-            quanLyGiaoDich.edit(selectedMaGiaoDich, dto);
+            // Delegate to Submit Edit Use Case
+            submitEditTransactionUseCase.execute(selectedMaGiaoDich, dto);
             
             // Hiển thị thông báo thành công
             UIUtils.showSuccess(tablePanel, "Cập nhật giao dịch thành công!");
@@ -200,29 +224,21 @@ public class TransactionController {
     
     /**
      * Xử lý click nút sửa trong bảng
+     * Sử dụng EditTransactionUseCase theo Clean Architecture
      */
     private void handleEditButtonClick(String maGiaoDich) {
         try {
-            Optional<GiaoDich> optional = quanLyGiaoDich.findById(maGiaoDich);
-            if (optional.isPresent()) {
-                GiaoDich giaoDich = optional.get();
-                
-                // Hiển thị form tương ứng với loại giao dịch
-                if (giaoDich instanceof GiaoDichVang) {
-                    goldFormPanel.showEditForm(giaoDich);
-                } else if (giaoDich instanceof GiaoDichTienTe) {
-                    currencyFormPanel.showEditForm(giaoDich);
-                }
-            } else {
-                UIUtils.showError(tablePanel, "Không tìm thấy giao dịch với mã: " + maGiaoDich);
-            }
+            // Delegate to Edit Use Case
+            editTransactionUseCase.execute(maGiaoDich);
+            
         } catch (Exception ex) {
-            UIUtils.showError(tablePanel, "Lỗi khi tải dữ liệu: " + ex.getMessage());
+            UIUtils.showError(tablePanel, "Lỗi: " + ex.getMessage());
         }
     }
     
     /**
      * Xử lý click nút xóa trong bảng
+     * Sử dụng DeleteTransactionUseCase theo Clean Architecture
      */
     private void handleDeleteButtonClick(String maGiaoDich) {
         // Xác nhận xóa
@@ -236,8 +252,8 @@ public class TransactionController {
         
         if (result == JOptionPane.YES_OPTION) {
             try {
-                // Xóa giao dịch
-                quanLyGiaoDich.remove(maGiaoDich);
+                // Delegate to Delete Use Case
+                deleteTransactionUseCase.execute(maGiaoDich);
                 
                 // Hiển thị thông báo thành công
                 UIUtils.showSuccess(tablePanel, "Xóa giao dịch thành công!");

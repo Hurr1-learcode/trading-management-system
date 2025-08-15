@@ -73,7 +73,7 @@ public class MainFrame extends JFrame {
         transactionController = new TransactionController(tabPanel, goldFormPanel, currencyFormPanel, tablePanel, quanLyGiaoDich);
         
         // Tạo statistics controller (xử lý thống kê) - inject service
-        statisticsController = new StatisticsController(statisticsPanel, quanLyGiaoDich);
+        statisticsController = new StatisticsController(quanLyGiaoDich, statisticsPanel);
         
         // Tạo export controller (xử lý export)
         exportController = new ExportController(statisticsPanel, transactionController, statisticsController);

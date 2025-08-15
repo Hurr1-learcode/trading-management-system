@@ -9,21 +9,25 @@ import model.GiaoDich;
 import service.QuanLyGiaoDich;
 import ui.Panels.StatisticsPanel;
 import ui.Utils.UIUtils;
+import usecase.AverageValueOfCurrencyTransactionsUseCase;
+import usecase.ViewStatisticsUseCase;
 
 public class StatisticsController {
     
-    private QuanLyGiaoDich quanLyGiaoDich;
     private StatisticsPanel statisticsPanel;
+    private ViewStatisticsUseCase viewStatisticsUseCase;
+    private AverageValueOfCurrencyTransactionsUseCase avgCurrencyUseCase;
     
-    public StatisticsController(StatisticsPanel statisticsPanel, QuanLyGiaoDich quanLyGiaoDich) {
+    public StatisticsController(QuanLyGiaoDich quanLyGiaoDich, StatisticsPanel statisticsPanel) {
         this.statisticsPanel = statisticsPanel;
-        this.quanLyGiaoDich = quanLyGiaoDich;
+        
+        // Initialize Use Case theo Clean Architecture (UC9)
+        this.viewStatisticsUseCase = new ViewStatisticsUseCase(quanLyGiaoDich);
+        this.avgCurrencyUseCase = new AverageValueOfCurrencyTransactionsUseCase(quanLyGiaoDich);
         
         setupEventHandlers();
-        loadInitialStatistics();
-    }
-    
-    /**
+        handleUpdateGeneralStatistics();
+    }    /**
      * Thiết lập các event handler
      */
     private void setupEventHandlers() {
@@ -44,24 +48,19 @@ public class StatisticsController {
     }
     
     /**
-     * Load thống kê ban đầu
-     */
-    private void loadInitialStatistics() {
-        handleUpdateGeneralStatistics();
-    }
-    
-    /**
-     * Xử lý cập nhật thống kê tổng quan
+     *  Xử lý cập nhật thống kê tổng quan
+     * Sử dụng ViewStatisticsUseCase theo Clean Architecture (UC9)
      */
     private void handleUpdateGeneralStatistics() {
         try {
-            // Lấy thống kê tổng quan
-            ThongKeDTO thongKe = quanLyGiaoDich.getTongSoLuongTheoLoai();
-            statisticsPanel.displayStatistics(thongKe);
-            
-            // Load giao dịch đơn giá lớn
+            // Delegate to View Statistics Use Case (UC9)
+            ThongKeDTO thongKe = viewStatisticsUseCase.executeGeneralStatistics();
+            // Lấy giá trị trung bình thành tiền tiền tệ (UC10)
+            java.math.BigDecimal avg = avgCurrencyUseCase.execute();
+            // Hiển thị thống kê tổng quan kèm giá trị trung bình
+            statisticsPanel.displayStatistics(thongKe, "TỔNG QUAN\nTrung bình thành tiền tiền tệ: " + ui.Utils.UIUtils.formatCurrency(avg) + " VNĐ");
+            // Load giao dịch đơn giá lớn (tích hợp UC8)
             loadHighValueTransactions();
-            
         } catch (Exception ex) {
             UIUtils.showError(statisticsPanel, "Lỗi khi tải thống kê: " + ex.getMessage());
         }
@@ -69,10 +68,12 @@ public class StatisticsController {
     
     /**
      * Xử lý thống kê hôm nay
+     * Sử dụng ViewStatisticsUseCase theo Clean Architecture (UC9)
      */
     private void handleTodayStatistics() {
         try {
-            ThongKeDTO thongKe = quanLyGiaoDich.getTongSoLuongTheoLoaiHomNay();
+            // Delegate to View Statistics Use Case (UC9)
+            ThongKeDTO thongKe = viewStatisticsUseCase.executeTodayStatistics();
             statisticsPanel.displayTodayStatistics(thongKe);
             
             // Vẫn hiển thị tất cả giao dịch đơn giá lớn
@@ -85,14 +86,12 @@ public class StatisticsController {
     
     /**
      * Xử lý thống kê tháng này
+     * Sử dụng ViewStatisticsUseCase theo Clean Architecture (UC9)
      */
     private void handleMonthStatistics() {
         try {
-            LocalDate now = LocalDate.now();
-            ThongKeDTO thongKe = quanLyGiaoDich.getTongSoLuongTheoLoaiTheoThang(
-                now.getYear(), 
-                now.getMonthValue()
-            );
+            // Delegate to View Statistics Use Case (UC9)
+            ThongKeDTO thongKe = viewStatisticsUseCase.executeCurrentMonthStatistics();
             statisticsPanel.displayMonthStatistics(thongKe);
             
             // Vẫn hiển thị tất cả giao dịch đơn giá lớn
@@ -112,16 +111,15 @@ public class StatisticsController {
     
     /**
      * Xử lý thống kê theo ngày
+     * Sử dụng ViewStatisticsUseCase theo Clean Architecture (UC9)
      */
     private void handleDateStatistics() {
         try {
             String ngayStr = statisticsPanel.getSelectedDate();
             LocalDate ngayChon = UIUtils.parseDate(ngayStr);
             
-            ThongKeDTO thongKe = quanLyGiaoDich.getTongSoLuongTheoLoaiTheoKhoangNgay(
-                ngayChon, 
-                ngayChon
-            );
+            // Delegate to View Statistics Use Case (UC9)
+            ThongKeDTO thongKe = viewStatisticsUseCase.executeDateStatistics(ngayChon);
             statisticsPanel.displayDateStatistics(thongKe, ngayChon);
             
             // Vẫn hiển thị tất cả giao dịch đơn giá lớn
@@ -136,14 +134,16 @@ public class StatisticsController {
     
     /**
      * Load danh sách giao dịch đơn giá lớn
+     * Sử dụng ViewStatisticsUseCase để tích hợp UC8 và UC9
      */
     private void loadHighValueTransactions() {
         try {
-            List<GiaoDich> donGiaLon = quanLyGiaoDich.getDonGiaLonHon1Ty();
+            // Delegate to View Statistics Use Case (UC9) which integrates with UC8
+            List<GiaoDich> donGiaLon = viewStatisticsUseCase.executeHighValueTransactions();
             statisticsPanel.loadHighValueTransactions(donGiaLon);
             
         } catch (Exception ex) {
-            UIUtils.showError(statisticsPanel, "Lỗi khi tải giao dịch đơn giá lớn: " + ex.getMessage());
+            UIUtils.showError(statisticsPanel, "Lỗi: " + ex.getMessage());
         }
     }
     
@@ -156,10 +156,11 @@ public class StatisticsController {
     
     /**
      * Lấy thống kê tổng quan
+     * Sử dụng ViewStatisticsUseCase theo Clean Architecture (UC9)
      */
     public ThongKeDTO getGeneralStatistics() {
         try {
-            return quanLyGiaoDich.getTongSoLuongTheoLoai();
+            return viewStatisticsUseCase.executeGeneralStatistics();
         } catch (Exception ex) {
             UIUtils.showError(statisticsPanel, "Lỗi khi lấy thống kê: " + ex.getMessage());
             return null;
@@ -168,22 +169,24 @@ public class StatisticsController {
     
     /**
      * Lấy danh sách giao dịch đơn giá lớn
+     * Sử dụng ViewStatisticsUseCase để tích hợp UC8 và UC9
      */
     public List<GiaoDich> getHighValueTransactions() {
         try {
-            return quanLyGiaoDich.getDonGiaLonHon1Ty();
+            return viewStatisticsUseCase.executeHighValueTransactions();
         } catch (Exception ex) {
-            UIUtils.showError(statisticsPanel, "Lỗi khi lấy giao dịch đơn giá lớn: " + ex.getMessage());
+            UIUtils.showError(statisticsPanel, "Lỗi: " + ex.getMessage());
             return List.of();
         }
     }
     
     /**
      * Lấy thống kê theo khoảng ngày
+     * Sử dụng ViewStatisticsUseCase theo Clean Architecture (UC9)
      */
     public ThongKeDTO getStatisticsByDateRange(LocalDate fromDate, LocalDate toDate) {
         try {
-            return quanLyGiaoDich.getTongSoLuongTheoLoaiTheoKhoangNgay(fromDate, toDate);
+            return viewStatisticsUseCase.executeDateRangeStatistics(fromDate, toDate);
         } catch (Exception ex) {
             UIUtils.showError(statisticsPanel, "Lỗi khi lấy thống kê theo ngày: " + ex.getMessage());
             return null;
@@ -192,10 +195,11 @@ public class StatisticsController {
     
     /**
      * Lấy thống kê hôm nay
+     * Sử dụng ViewStatisticsUseCase theo Clean Architecture (UC9)
      */
     public ThongKeDTO getTodayStatistics() {
         try {
-            return quanLyGiaoDich.getTongSoLuongTheoLoaiHomNay();
+            return viewStatisticsUseCase.executeTodayStatistics();
         } catch (Exception ex) {
             UIUtils.showError(statisticsPanel, "Lỗi khi lấy thống kê hôm nay: " + ex.getMessage());
             return null;
@@ -204,10 +208,11 @@ public class StatisticsController {
     
     /**
      * Lấy thống kê theo tháng
+     * Sử dụng ViewStatisticsUseCase theo Clean Architecture (UC9)
      */
     public ThongKeDTO getMonthStatistics(int year, int month) {
         try {
-            return quanLyGiaoDich.getTongSoLuongTheoLoaiTheoThang(year, month);
+            return viewStatisticsUseCase.executeMonthStatistics(year, month);
         } catch (Exception ex) {
             UIUtils.showError(statisticsPanel, "Lỗi khi lấy thống kê theo tháng: " + ex.getMessage());
             return null;
