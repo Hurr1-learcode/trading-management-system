@@ -14,7 +14,6 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -187,9 +186,9 @@ public class GoldTransactionFormPanel extends JPanel {
      * Lưu dữ liệu form
      */
     private void saveFormData() {
+        btnSaveForm.setEnabled(false); // Prevent double submit
         try {
             GiaoDichFormDTO dto = getFormData();
-            
             // Callback để controller xử lý
             if (formSaveListener != null) {
                 if (isEditMode) {
@@ -198,10 +197,11 @@ public class GoldTransactionFormPanel extends JPanel {
                     formSaveListener.onAddGoldTransaction(dto);
                 }
             }
-            
             formDialog.dispose();
         } catch (ValidationException ex) {
-            JOptionPane.showMessageDialog(formDialog, ex.getMessage(), "Lỗi validation", JOptionPane.ERROR_MESSAGE);
+            UIUtils.showError(this, ex.getMessage());
+            btnSaveForm.setEnabled(true); // Allow retry after validation error
+            return;
         }
     }
     
